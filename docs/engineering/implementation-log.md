@@ -1,5 +1,64 @@
 # Next release implementation log
 
+## Assigned tasks — 15 November 2026
+
+Started clean on `feature/recurring-intelligence` at `50541da`. At combined-task resumption, only the interrupted session's preprocessing module/test files were present. No teammate edits were overwritten, dependencies installed, staging, commits or pushes performed.
+
+- Task 2: pure review-only evidence extraction and conservative candidates. Preserve raw descriptors/numeric brands. Labelled references and VPA-shaped tokens remain internal; malformed/multiple addresses, stacked channels and generic-provider-only text abstain. Existing exact aliases, manual decisions, API shape and commitment hashes remain unchanged. No automatic entity resolution.
+- Task 1: initial anchor hypotheses cover all days in current/adjacent months within ±3 posting days; existing support/missing-slot thresholds remain. Empty/sparse inputs abstain. Weekly-looking irregular series retain membership but receive review flags, capped confidence and habitual-spending evidence. No amount-tier rewrite or forecast policy change.
+- Task 4: extend existing import with shared single-file/empty/2 MB validation, nested drag feedback, file details, picker fallback, cancellation and phase/error announcements. Keep mapping, overlap and mapped-only submission. Filenames remain browser-local; no new animation or service.
+
+### Actual red/green evidence
+
+| Increment | Red output | Green output |
+| --- | --- | --- |
+| Preprocessing | `6 failed`; assertion: `Task 2A preprocessing module is missing` | `6 passed` |
+| Suggestion integration | `4 failed, 1 passed`; reference variants produced no suggestions | Focused merchant/API/ID selection: `16 passed, 29 deselected` |
+| Calendar boundaries | `7 failed, 1 passed`; wrong anchors, empty-input exception, weekly confidence1 | Calendar/amount selection: `17 passed, 1 deselected` |
+| Shared picker/drop validation | `1 failed, 3 passed`; missing helper | `4 passed` |
+| Review corrections | Stacked-channel ambiguity, `REF 24Seven` preservation and oversized-input tests each failed before correction | Final preprocessing/review selection: `13 passed` |
+
+Cross-month synthetic expectations were corrected before production changes to avoid assuming month-end from uniformly day-2 observations. Independent read-only reviewers found stacked-channel idempotence and an undefined dropzone CSS token; both fixed. Further negative coverage requires six digits for reference extraction and bounded abstention before regex work.
+
+First combined Python attempt: `3 failed, 62 passed, 1 skipped`. Two SPA checks ran before the disposable build existed; rerunning after build resolves them. The third exposed historical detector-source-hash equality. Tests now separately validate current source hash and all frozen semantic fields, without regenerating the artifact. A transient unmatched-parenthesis test edit was corrected before green.
+
+### Available verification
+
+- Python after final review: `70 passed, 1 skipped, 1 warning in 4.39s`. Skip: `tests/test_hosted_storage.py:7`, Alembic unavailable. Existing Starlette/httpx deprecation warning remains. Review found slash/hyphen references could change on a second pass; a failing separator regression led to canonicalizing separators before reference extraction. The full suite was rerun after that correction.
+- Frontend: `25 passed, 0 failed`; Web Storage experimental warning expected.
+- ESLint and `tsc -b && vite build` exited0 using `npm.cmd` and disposable output directories. Existing WebGL chunk-size warning remains.
+- Calendar comparison: TP16/FP4/TN5/FN7, precision80%, recall69.57%, F1 74.42% in both modes; four drift cadence corrections retained.
+- Merchant holdout: TP27/FP4/TN5/FN15, precision87.10%, recall64.29%, F1 73.97%, cadence27/42, exact recoveries5/11, mixed merchants0, suggestions0. Synthetic metrics unchanged.
+- Integrity against `50541da`: both frozen fixtures, labels, synthetic CSV, alias map and bundled dashboard JSON unchanged, normalizing Git line endings. Merchant SHA256: `449236253d40e2ce464155f8be5e394dc1287d213452ebbb9c84c410eb6180a4`.
+
+Commands: `.venv/Scripts/python.exe -m pytest -q -rs -p no:cacheprovider --basetemp <fresh-disposable-path>` with disposable `FINSIGHT_PROCESSED_DIR` and `FINSIGHT_FRONTEND_DIST`; `node --experimental-webstorage --localstorage-file=<disposable-file> --test frontend/tests/*.test.mjs frontend/revocation-guide.test.mjs`; `npm.cmd run lint --prefix frontend`; `npm.cmd run build --prefix frontend -- --outDir <disposable-path>`; `.venv/Scripts/python.exe -m src.benchmark_holdout --compare-calendar`; `.venv/Scripts/python.exe -m src.evaluate_merchant_holdout`. Detector outputs were generated only in temporary storage. No tracked benchmark writer ran.
+
+Environment recovery: default Python WindowsApps launcher was inaccessible, so existing `.venv` was used. Default pytest temp ownership failed, so a fresh task-owned basetemp was selected. PowerShell blocks `npm.ps1`; `npm.cmd` works without changing execution policy.
+
+### Initial verification limits (browser blocker resolved below)
+
+`node frontend/tests/private-statement.browser.mjs` failed: `ERR_MODULE_NOT_FOUND: Cannot find package 'playwright'`. Chrome exists but a bounded lookup found no usable Playwright module. No install performed. Added nested drag/drop, selected-file clear and keyboard fallback assertions to that existing synthetic harness; they remain unexecuted. Cancellation/late-response browser checks and hosted verification are not claimed. Stale/current-price forecasts, same-price ambiguity and persistent/automatic merchant resolution remain outside this change. Earlier results below are historical evidence.
+
+### Targeted closure of assigned tasks — 15 November 2026
+
+Complete tracked/untracked diff inspection found only the expected assigned-task implementation, tests and documentation; no unrelated refactor or API-shape change. Production code was unchanged during closure. Existing manual decisions, exact aliases and commitment hash construction remain intact. An independent synthetic invariant test verifies that an exact trusted alias resolves in the detector, its channel/reference-wrapped variant does not auto-resolve, private imports do not silently apply configuration aliases, and explicit linking still works. No broader automatic rule is justified by the available identity evidence.
+
+The benchmark regression keeps every semantic equality/reproducibility/completeness assertion. It now also pins the historical detector SHA256 to `7c66bbdcb92991391290d478db06cfbf76aa0ef24540dafa15074133c0af2d1d`; actual current source SHA256 is checked separately. In-memory mutations to metrics, counts, fixture/alias hashes, predictions and evidence, plus a disposable historical-fingerprint mutation, were all rejected. No tracked fixture/artifact was edited. Focused command covering benchmark/preprocessing/review tests: `18 passed in 1.57s`.
+
+User authorized isolated installation of documented `playwright@1.65.0` plus Chromium. Sandbox registry/CDN EACCES required narrow approvals for these specific temporary installs; no project manifest, lockfile or production dependency changed. Tools/browser runtime live under `%TEMP%/finsight-closure-20261115`. Uvicorn used loopback port8877, existing disposable detector/build outputs and a synthetic SQLite file in that temporary directory.
+
+`node frontend/tests/private-statement.browser.mjs` exited0 and printed:
+
+```text
+PASS: explicit SQLite save, JSON download, reload and restore, and saved statement deletion
+PASS: nested drop feedback, invalid files, replacement/removal, keyboard picker, cancelled read/analysis and late responses
+PASS: private CSV preview, mapping, analysis, merchant link and removal, volatile checklist, clear, and reload
+```
+
+`node frontend/tests/calendar-export.browser.mjs` exited0: `PASS: private calendar selection, redacted default, optional preview, and iCalendar download`.
+
+The private harness verifies no analysis request occurs during selection/preview/local cancellation. Delayed local reads and real backend analysis responses are released after cancellation to check late-result protection. Keyboard Space opens the native chooser. Invalid UTF-8, malformed quotes, empty/oversized files and multi-file drops recover before successful analysis. Prior complete Python70/frontend25/build/lint and synthetic benchmark results remain the latest full results; only tests/docs changed at closure, so unnecessary complete reruns were avoided. Hosted tests remain limited by missing Alembic; no hosted dependency or schema was modified.
+
 ## Canonical demo and serving boundary
 
 - Replaced the FastAPI catch-all file handler with Starlette's contained static mount. API responses use `Cache-Control: no-store`.

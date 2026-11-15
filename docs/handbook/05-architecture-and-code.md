@@ -4,6 +4,8 @@ Architecture describes how work moves between the browser, the server, files and
 
 ## Trace 1: Open the synthetic dashboard
 
+The 15 November extension adds `src/merchant_identity.py` to the review path only. It emits bounded internal evidence while detector keys/API fields stay unchanged. Calendar initialization searches clamped current/adjacent-month slots within three posting days. StatementImport shares drop/picker ingestion and existing mapped-only transport; there is no parallel parser/storage service.
+
 1. [start_app.ps1](../../start_app.ps1) creates a temporary runtime directory. It points `FINSIGHT_PROCESSED_DIR` and `FINSIGHT_FRONTEND_DIST` at scratch subdirectories and builds the frontend with a same-origin API URL.
 2. [detect_recurring_v3.py](../../src/detect_recurring_v3.py) reads `data/raw/synthetic_transactions.csv` and the configured alias map. It writes detector candidates and one prediction per debit.
 3. Uvicorn listens for HTTP requests and calls the FastAPI `app` in [src/api.py](../../src/api.py). The SPA is mounted after API routes. The browser first loads the HTML, then JavaScript and styles.

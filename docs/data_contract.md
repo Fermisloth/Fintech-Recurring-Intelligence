@@ -5,6 +5,10 @@ Status: Local statement analysis and opt-in hosted pilot, reviewed 12 November 2
 
 ## 1. Purpose
 
+### 15 November compatibility note
+
+No API fields or endpoints changed. Original descriptions remain evidence; internal VPA/reference extraction is not serialized. Suggestions may explain recognized metadata, but only existing exact aliases and confirmed links affect grouping. `merchant_id` remains nullable. Commitment hash construction is unchanged; newly supported fits can still affect existing stream partition decisions. Billing anchors retain existing fields and frontend clamping. Weekly-looking irregular histories remain candidates, now with review flags and confidence capped at 0.5; this does not establish a mandate.
+
 Define the shared data structures used by the detection engine,
 Python backend, React frontend, and automated tests.
 

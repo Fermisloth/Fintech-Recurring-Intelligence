@@ -1,5 +1,7 @@
 # Current feature inventory
 
+15 November extension: review-only descriptor preprocessing and calendar boundary corrections are implemented and regression-tested. CSV drop/picker selection, file details, invalid-input recovery, cancellation and stale-response protection passed synthetic Chromium verification alongside existing merchant review and local save workflows. No automatic unknown-merchant resolution or persistent merchant entities were added. Earlier capability rows retain their historical verification provenance.
+
 | Capability | Current state |
 | --- | --- |
 | Recurring detector | Calendar and interval heuristics, exact aliases, disjoint amount-tier assignment and irregular fallback. Similar variable tiers and same-price plans can still be ambiguous. |

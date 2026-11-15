@@ -3,6 +3,15 @@ export interface ImportCsv {
   rows: string[][]
 }
 
+export function selectImportFile(files: File[]): File {
+  if (files.length !== 1) throw new Error('Choose one CSV file at a time.')
+  const file = files[0]
+  if (!file.size) throw new Error('The file is empty. Choose a CSV with transactions.')
+  if (file.size > 2_000_000) throw new Error('Choose a CSV file no larger than 2 MB.')
+  // Extension/MIME are hints; the existing UTF-8 decoder and parser validate content.
+  return file
+}
+
 interface ImportPreset {
   id: string
   label: string

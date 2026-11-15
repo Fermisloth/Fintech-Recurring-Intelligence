@@ -5,8 +5,14 @@ from collections import defaultdict
 from difflib import SequenceMatcher
 from unicodedata import normalize
 
+from src.merchant_identity import descriptor_evidence
+
 MAX_REVIEW_PAIRS = 24
 MAX_BLOCK_NEIGHBORS = 16
+GENERIC_PAYMENT_TOKENS = frozenset({
+    "UPI", "IMPS", "NEFT", "RTGS", "PAYMENT", "PAYMENTS", "AUTOPAY",
+    "PAYTM", "PHONEPE", "GPAY", "GOOGLE", "PAY", "RAZORPAY", "CASHFREE", "PAYU", "BHARATPE",
+})
 
 
 def pair_key(left, right):
@@ -32,7 +38,8 @@ def validate_dismissals(value, descriptors):
 
 
 def merchant_suggestions(descriptors, confirmed, dismissed, known_aliases):
-    names = {key: normalized_name(key) for key in descriptors}
+    evidence = {key: descriptor_evidence(key) for key in descriptors}
+    names = {key: item.comparison_text for key, item in evidence.items()}
     dismissed_keys = {pair_key(*pair) for pair in dismissed}
     canonical = set(confirmed.values())
     known_targets = set(known_aliases.values())
@@ -41,8 +48,11 @@ def merchant_suggestions(descriptors, confirmed, dismissed, known_aliases):
     for key, name in names.items():
         if key in confirmed:
             continue
-        if len(name) >= 4:
-            blocks[name[:4], tuple(re.findall(r"\d+", normalize("NFKC", key)))].append(key)
+        item = evidence[key]
+        meaningful = any(any(char.isalpha() for char in token) and token not in GENERIC_PAYMENT_TOKENS
+                         for token in name.split())
+        if len(name) >= 3 and meaningful and not item.ambiguous:
+            blocks[name[:4], tuple(re.findall(r"\d+", name))].append(key)
         resolved = known_aliases.get(key, key if key in known_targets else None)
         if resolved:
             aliases[resolved].append(key)
@@ -74,7 +84,11 @@ def merchant_suggestions(descriptors, confirmed, dismissed, known_aliases):
             for right in bucket[index + 1:index + 1 + MAX_BLOCK_NEIGHBORS]:
                 first, second = names[left], names[right]
                 if first == second:
-                    add(left, right, 1, "Same letters and digits after ignoring punctuation and spacing")
+                    metadata = any(evidence[key].channels or evidence[key].references or evidence[key].vpas
+                                   for key in (left, right))
+                    reason = ("Same merchant text after separating recognized payment metadata; confirm identity"
+                              if metadata else "Same letters and digits after ignoring punctuation and spacing")
+                    add(left, right, 1, reason)
                 elif 8 <= min(len(first), len(second)) and max(len(first), len(second)) <= 64 and abs(len(first) - len(second)) <= 2:
                     comparison = SequenceMatcher(None, first, second, autojunk=False)
                     if comparison.quick_ratio() < 0.9:

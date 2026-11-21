@@ -19,6 +19,8 @@ The launcher prefers port 8000 and chooses a free loopback port if necessary. It
 
 ## Explore the app
 
+CSV import supports a live dropzone or keyboard-accessible file picker, selected-file details, and cancellation. Preview remains browser-local. Merchant review compares descriptors after separating recognized payment metadata; links still require confirmation. Calendar fitting includes short-month and adjacent-month billing slots. See the [15 November implementation evidence](docs/engineering/implementation-log.md#assigned-tasks--15-november-2026) for verification and limits.
+
 | Open | Try |
 | --- | --- |
 | **Overview** | Open a milestone and trace it to the supporting transaction history. |

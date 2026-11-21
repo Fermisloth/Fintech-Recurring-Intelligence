@@ -8,6 +8,8 @@ FinSight supports the synthetic demo, private CSV preview and mapping, overlap-a
 
 ## Proposed next work
 
+15 November status: conservative Task 2 preprocessing, calendar anchor corrections and the dropzone extend existing paths; synthetic Chromium interaction verification now passes. Additional automatic resolution remains unjustified under existing exact-alias/private-consent/identity contracts. Hosted verification and existing stale/current-price forecast work remain separate limitations. Frozen holdouts and alias configuration are unchanged. Unchanged synthetic metrics do not establish real-world accuracy.
+
 | Order | Work | Acceptance evidence |
 | --- | --- | --- |
 | P0 completed | **Correct amount-tier ownership.** Each debit enters one partition. Evidence distinguishes supported overlapping exact-price plans, rotating prices, sustained price steps and INR nominal starts. | Seven regression cases passed. Both frozen holdouts and the original synthetic replay retained their debit metrics. |

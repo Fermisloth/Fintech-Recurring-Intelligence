@@ -6,6 +6,10 @@ If your copy of FinSight shows no **Import statement** menu, check which mode yo
 
 ## 3.1 Understand the file
 
+Drop one CSV into the import area or use the labeled picker with the keyboard. Both paths require a nonempty file up to 2 MB, followed by UTF-8/CSV validation. Name/size stays in the tab. Dropping only previews; review mapping before submission. Choose another file to replace it or **Clear preview** to remove it. **Cancel processing** stops client waiting and ignores late results; it does not guarantee server computation stops or delete saved copies.
+
+Merchant review separates supported payment metadata for comparison, not automatic grouping. Numeric brands remain; shared payment addresses/providers alone do not establish identity. Confirm or undo links using existing controls. Unlabelled numbers and unsupported bank formats may still require manual linking.
+
 A CSV is a plain-text table. Its first row is a header that names the columns. Every following row should describe one transaction. FinSight needs a date, a description, and the information needed to determine both the amount and direction. A payment method is optional.
 
 The description may be called **Narration**, **Particulars**, **Merchant**, or another name in your export. The header does not change the values underneath it. A mapping tells FinSight which column plays which role.

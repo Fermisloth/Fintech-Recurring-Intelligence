@@ -71,18 +71,31 @@ def classify_intervals(intervals):
 
 def calendar_cadence(dates, required_cadence=None):
     """Find repeated calendar slots within three days, allowing one missed slot per gap."""
+    if len(dates) < 3:
+        return None, 0.0, None, None
     first = dates[0]
-    start_month = first.year * 12 + first.month - 1
+    first_month = first.year * 12 + first.month - 1
+    initial_slots = []
+    for offset in (0, -1, 1):
+        start_month = first_month + offset
+        year, month = divmod(start_month, 12)
+        if not 1 <= year <= 9999:
+            continue
+        for anchor in range(1, 32):
+            initial = date(year, month + 1, min(anchor, monthrange(year, month + 1)[1]))
+            error = abs((first - initial).days)
+            if error <= 3:
+                initial_slots.append((start_month, anchor, error))
     best = None, 0.0, None, None
     best_error = float("inf")
     for cadence, period in (("monthly", 1), ("quarterly", 3), ("annual", 12)):
         if required_cadence and cadence != required_cadence:
             continue
-        for anchor in range(max(1, first.day - 3), min(31, first.day + 3) + 1):
+        for start_month, anchor, initial_error in initial_slots:
             previous = 0
             matched = 1
             consecutive = 0
-            error = abs(first.day - min(anchor, monthrange(first.year, first.month)[1]))
+            error = initial_error
             last_slot = None
             for observed in dates[1:]:
                 for slot in (previous + 1, previous + 2):
@@ -199,6 +212,7 @@ def detect(transactions, aliases, namespace="demo-v1", *, calendar=True, currenc
             confidence = 0.0
             evidence = "Insufficient repeated timing evidence"
             amount_pattern = "unknown"
+            habitual_timing = False
             amount_spread = (
                 (max(amounts) - min(amounts)) / typical_amount
                 if typical_amount else 0.0
@@ -233,6 +247,11 @@ def detect(transactions, aliases, namespace="demo-v1", *, calendar=True, currenc
                             f"amount spread {amount_spread:.1%}; "
                             "irregular timing"
                         )
+                        habitual_timing = (len(intervals) >= 4
+                                           and sum(6 <= gap <= 8 for gap in intervals) / len(intervals) >= 0.75)
+                        if habitual_timing:
+                            confidence = min(confidence, 0.5)
+                            evidence += "; weekly habitual spending is possible; review billing evidence"
 
                 if cadence in CADENCES:
                     confidence = (
@@ -282,7 +301,7 @@ def detect(transactions, aliases, namespace="demo-v1", *, calendar=True, currenc
                     is_recurring_txn = False
 
                 review_required = bool(
-                    (is_recurring_txn and amount_outlier)
+                    habitual_timing or (is_recurring_txn and amount_outlier)
                     or (not is_recurring_txn and cadence)
                 )
 

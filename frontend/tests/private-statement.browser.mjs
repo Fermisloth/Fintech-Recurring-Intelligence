@@ -10,6 +10,10 @@ try {
   const page = await browser.newPage({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' })
   page.setDefaultTimeout(8000)
   const errors = []
+  const analysisRequests = []
+  page.on('request', request => {
+    if (request.method() === 'POST' && request.url().endsWith('/api/private-statement')) analysisRequests.push(request)
+  })
   page.on('pageerror', error => errors.push(error.message))
   await page.goto(origin)
   const syntheticTimeline = page.getByRole('region', { name: 'Subscription timeline' })
@@ -47,13 +51,99 @@ try {
       '06/01/2025,Private Synthetic Gym Refund,420,Card\n',
     ),
   }
-  await page.getByLabel('Statement CSV').setInputFiles(fixture)
+  const dropzone = page.getByRole('region', { name: 'CSV dropzone' })
+  const transfer = await page.evaluateHandle(() => {
+    const data = new DataTransfer()
+    data.items.add(new File(['date,description,amount\n2025-01-15,Synthetic Desk,-100'], 'drop-preview.csv', { type: 'text/csv' }))
+    return data
+  })
+  await dropzone.dispatchEvent('dragenter', { dataTransfer: transfer })
+  await dropzone.locator('label').dispatchEvent('dragenter', { dataTransfer: transfer })
+  await dropzone.locator('label').dispatchEvent('dragleave', { dataTransfer: transfer })
+  assert.match(await dropzone.getAttribute('class'), /is-dragging/)
+  await dropzone.dispatchEvent('dragover', { dataTransfer: transfer })
+  await dropzone.dispatchEvent('drop', { dataTransfer: transfer })
   await page.getByRole('region', { name: 'Statement preview' }).waitFor()
+  assert.match(await dropzone.innerText(), /drop-preview.csv/)
+  assert.doesNotMatch(await dropzone.getAttribute('class'), /is-dragging/)
+  await page.getByLabel('Statement CSV').setInputFiles({
+    name: 'replacement-preview.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('date,description,amount\n2025-01-15,Replacement Desk,-200'),
+  })
+  await page.getByText('Replacement Desk', { exact: true }).waitFor()
+  assert.match(await dropzone.innerText(), /replacement-preview.csv/)
+  assert.doesNotMatch(await dropzone.innerText(), /drop-preview.csv/)
+  await page.getByRole('button', { name: 'Clear preview', exact: true }).click()
+  assert.doesNotMatch(await dropzone.innerText(), /replacement-preview.csv/)
+  await page.getByLabel('Statement CSV').focus()
+  assert.equal(await page.getByLabel('Statement CSV').evaluate(element => element === document.activeElement), true)
+  await transfer.dispose()
+  // Content and selection failures recover without uploading anything.
+  for (const [name, buffer, message] of [
+    ['empty.csv', Buffer.alloc(0), /empty/],
+    ['invalid.csv', Buffer.from([0xff, 0xfe, 0xff]), /encoded data|UTF-8/i],
+    ['broken.csv', Buffer.from('date,description,amount\n"unterminated'), /quoting/],
+    ['oversized.csv', Buffer.alloc(2_000_001, 120), /2 MB/],
+  ]) {
+    await page.getByLabel('Statement CSV').setInputFiles({ name, mimeType: 'text/csv', buffer })
+    await page.getByRole('alert').waitFor()
+    assert.match(await page.getByRole('alert').innerText(), message)
+    assert.equal(await page.getByRole('region', { name: 'Statement preview' }).count(), 0)
+  }
+  const multiple = await page.evaluateHandle(() => {
+    const data = new DataTransfer()
+    for (const name of ['first.csv', 'second.csv']) data.items.add(new File(['a\nb'], name))
+    return data
+  })
+  await dropzone.dispatchEvent('drop', { dataTransfer: multiple })
+  assert.match(await page.getByRole('alert').innerText(), /one CSV/)
+  await multiple.dispose()
+
+  // Delay a real local read, cancel it, replace it, then release the old bytes.
+  await page.evaluate(() => {
+    const original = File.prototype.arrayBuffer
+    window.restoreFileRead = () => { File.prototype.arrayBuffer = original }
+    File.prototype.arrayBuffer = function () {
+      if (this.name !== 'slow-read.csv') return original.call(this)
+      return new Promise(resolve => { window.releaseFileRead = () => original.call(this).then(resolve) })
+    }
+  })
+  await page.getByLabel('Statement CSV').setInputFiles({
+    name: 'slow-read.csv', mimeType: 'text/csv', buffer: Buffer.from('old,date\na,b'),
+  })
+  await page.getByRole('button', { name: 'Cancel processing' }).click()
+  assert.match(await page.getByRole('status').innerText(), /Cancelled/)
+  const picker = page.waitForEvent('filechooser')
+  await page.getByLabel('Statement CSV').press('Space')
+  await (await picker).setFiles(fixture)
+  await page.getByRole('region', { name: 'Statement preview' }).waitFor()
+  await page.evaluate(async () => { await window.releaseFileRead(); window.restoreFileRead() })
+  assert.match(await dropzone.innerText(), /synthetic-import-smoke.csv/)
+  assert.doesNotMatch(await dropzone.innerText(), /slow-read.csv/)
   await page.getByLabel('Date', { exact: true }).selectOption('0')
   await page.getByLabel('Merchant or description').selectOption('1')
   await page.getByLabel('Amount', { exact: true }).selectOption('2')
   await page.getByLabel('Payment method').selectOption('3')
   await page.getByLabel('Date format').selectOption('dmy')
+  assert.equal(analysisRequests.length, 0, 'selection, preview and cancellation must remain local')
+  // Cancellation of an in-flight mapped analysis must not navigate on a late response.
+  let releaseAnalysis
+  let analysisStarted
+  const started = new Promise(resolve => { analysisStarted = resolve })
+  const delayed = new Promise(resolve => { releaseAnalysis = resolve })
+  await page.route('**/api/private-statement', async route => {
+    analysisStarted()
+    const response = await route.fetch()
+    await delayed
+    await route.fulfill({ response }).catch(() => {}) // Client may already have aborted.
+  })
+  await page.getByRole('button', { name: 'Analyze statement' }).click()
+  await started
+  await page.getByRole('button', { name: 'Cancel processing' }).click()
+  releaseAnalysis()
+  await page.unrouteAll({ behavior: 'wait' })
+  await page.getByRole('heading', { name: 'Preview and map fields' }).waitFor()
+  assert.equal(await page.getByText('Private statement data', { exact: true }).count(), 0)
   await page.getByRole('button', { name: 'Analyze statement' }).click()
   await page.getByText('Private statement data', { exact: true }).waitFor()
   const timeline = page.getByRole('region', { name: 'Subscription timeline' })
@@ -211,6 +301,7 @@ try {
   await page.getByRole('heading', { name: 'Review transaction evidence' }).waitFor()
   await page.getByRole('button', { name: 'Clear private statement' }).click()
   assert.deepEqual(errors, [])
+  console.log('PASS: nested drop feedback, invalid files, replacement/removal, keyboard picker, cancelled read/analysis and late responses')
   console.log('PASS: private CSV preview, mapping, analysis, merchant link and removal, volatile checklist, clear, and reload')
 } finally {
   await browser.close()

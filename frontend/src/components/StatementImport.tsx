@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { normalizedStatementCsv, requestAnalysis } from './statementRequest'
-import { applyImportPreset, IMPORT_PRESETS, parseImportCsv, projectMappedCsv, suggestImportMapping, type ImportCsv } from './importQuality'
+import { applyImportPreset, IMPORT_PRESETS, parseImportCsv, projectMappedCsv, selectImportFile, suggestImportMapping, type ImportCsv } from './importQuality'
 import './StatementImport.css'
 
 type RecordData = Record<string, unknown>
@@ -69,19 +69,52 @@ export function StatementImport({ api, onAnalyze, existing, hostedToken }: {
   const [excluded, setExcluded] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [selectedFile, setSelectedFile] = useState<{ name: string; size: number } | null>(null)
+  const [dragActive, setDragActive] = useState(false)
+  const dragDepth = useRef(0)
+  const [phase, setPhase] = useState('')
 
   useEffect(() => () => { pending.current?.abort(); parsed.current = null }, [])
 
   const visibleFields = fields.filter(({ key }) => split
     ? !['amount', 'direction'].includes(key) : !['debit_amount', 'credit_amount'].includes(key))
 
+  function chooseFiles(files: File[]) {
+    if (busy) return
+    try {
+      void send(selectImportFile(files))
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Choose one UTF-8 CSV file.')
+    }
+  }
+
+  function clearPreview() {
+    parsed.current = null
+    setPreview(null)
+    setSelectedFile(null)
+    setReview(null)
+    setExcluded([])
+    setError('')
+    setPhase('')
+  }
+
+  function cancel() {
+    pending.current?.abort()
+    pending.current = null
+    setBusy(false)
+    setPhase('Cancelled. You can retry or choose another file.')
+    if (!parsed.current) setSelectedFile(null)
+  }
+
   async function send(file?: File) {
     const controller = new AbortController()
     pending.current?.abort()
     pending.current = controller
     setBusy(true)
+    setPhase(file ? 'Reading CSV locally…' : merge ? 'Reviewing statement overlap…' : 'Analyzing mapped rows…')
     setError('')
     if (file) {
+      setSelectedFile({ name: file.name, size: file.size })
       parsed.current = null
       setPreview(null)
       setMapping({})
@@ -94,7 +127,6 @@ export function StatementImport({ api, onAnalyze, existing, hostedToken }: {
     }
     try {
       if (file) {
-        if (file.size > 2_000_000) throw new Error('Choose a CSV file no larger than 2 MB.')
         const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer())
         if (controller.signal.aborted) return
         const next = parseImportCsv(text)
@@ -106,6 +138,7 @@ export function StatementImport({ api, onAnalyze, existing, hostedToken }: {
         const suggested = suggestImportMapping(next.columns)
         setMapping(suggested)
         setSplit(suggested.debit_amount >= 0 && suggested.credit_amount >= 0)
+        setPhase('CSV ready to preview. No data has been submitted.')
         return
       }
       if (!parsed.current) return
@@ -128,18 +161,26 @@ export function StatementImport({ api, onAnalyze, existing, hostedToken }: {
         const next = await requestAnalysis<{ overlap_review: OverlapReview }>(
           api, { ...payload, overlap_preview: true }, controller.signal, hostedToken,
         )
-        if (!controller.signal.aborted) setReview({ result: next.overlap_review, payload })
+        if (!controller.signal.aborted) {
+          setReview({ result: next.overlap_review, payload })
+          setPhase('Overlap ready for review.')
+        }
         return
       }
       const next = await requestAnalysis<StatementData>(api, payload, controller.signal, hostedToken)
       if (controller.signal.aborted) return
       parsed.current = null
       setPreview(null)
+      setSelectedFile(null)
       setReview(null)
       onAnalyze(next)
     } catch (failure) {
       if (controller.signal.aborted) return
-      if (file) parsed.current = null
+      if (file) {
+        parsed.current = null
+        setSelectedFile(null)
+      }
+      setPhase('')
       setError(failure instanceof Error ? failure.message : 'The statement could not be read.')
     } finally {
       if (!controller.signal.aborted) setBusy(false)
@@ -154,15 +195,42 @@ export function StatementImport({ api, onAnalyze, existing, hostedToken }: {
       <p>Choose a UTF-8 CSV with a header row. Preview stays in this tab. {hostedToken
         ? 'The hosted server receives only mapped columns when you review or analyze. Save explicitly to keep a mapped copy.'
         : 'The local server analyzes only mapped columns, and results stay in this tab until you clear it or reload.'}</p>
+      <div className={`statement-dropzone${dragActive ? ' is-dragging' : ''}`} role="region" aria-label="CSV dropzone" aria-busy={busy}
+        onDragEnter={event => {
+          event.preventDefault()
+          if (!busy && event.dataTransfer.types.includes('Files')) {
+            dragDepth.current += 1
+            setDragActive(true)
+          }
+        }}
+        onDragOver={event => {
+          event.preventDefault()
+          event.dataTransfer.dropEffect = busy ? 'none' : 'copy'
+        }}
+        onDragLeave={event => {
+          event.preventDefault()
+          dragDepth.current = Math.max(0, dragDepth.current - 1)
+          if (!dragDepth.current) setDragActive(false)
+        }}
+        onDrop={event => {
+          event.preventDefault()
+          dragDepth.current = 0
+          setDragActive(false)
+          chooseFiles(Array.from(event.dataTransfer.files))
+        }}>
+      <p id="statement-drop-hint">{dragActive ? 'Drop one CSV to preview it' : 'Drop one CSV here, or choose a file. Up to 2 MB.'}</p>
       <label className="statement-file">
         <span>Statement CSV</span>
-        <input type="file" accept=".csv,text/csv" disabled={busy} onChange={event => {
-          const file = event.currentTarget.files?.[0]
+        <input type="file" accept=".csv,text/csv" aria-describedby="statement-drop-hint" disabled={busy} onChange={event => {
+          const files = Array.from(event.currentTarget.files ?? [])
           event.currentTarget.value = ''
-          if (file) void send(file)
+          if (files.length) chooseFiles(files)
         }} />
       </label>
-      {busy && <p role="status">Reading statement…</p>}
+      {selectedFile && <p className="statement-selection">Selected: <strong>{selectedFile.name}</strong> ({selectedFile.size.toLocaleString()} bytes)</p>}
+      </div>
+      <p role="status" aria-live="polite">{phase}</p>
+      {busy && <button className="secondary-button" type="button" onClick={cancel}>Cancel processing</button>}
       {error && <p role="alert" className="statement-error">{error}</p>}
       {preview && (
         <form onSubmit={event => { event.preventDefault(); void send() }}>
@@ -257,13 +325,7 @@ export function StatementImport({ api, onAnalyze, existing, hostedToken }: {
               {review ? 'Apply reviewed overlap' : merge ? 'Review overlap' : 'Analyze statement'}
             </button>
             {review && <button className="secondary-button" disabled={busy} type="button" onClick={() => { setReview(null); setExcluded([]) }}>Edit mapping</button>}
-            <button className="secondary-button" disabled={busy} type="button" onClick={() => {
-              parsed.current = null
-              setPreview(null)
-              setReview(null)
-              setExcluded([])
-              setError('')
-            }}>Clear preview</button>
+            <button className="secondary-button" disabled={busy} type="button" onClick={clearPreview}>Clear preview</button>
           </div>
         </form>
       )}

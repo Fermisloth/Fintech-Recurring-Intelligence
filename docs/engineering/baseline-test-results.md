@@ -25,4 +25,12 @@ This file records the pre-release audit baseline. The final local release passed
 
 ## Current audit
 
+### Assigned-task verification — 15 November 2026
+
+Developer-supplied starting baseline at `50541da`: 46 Python passed with hosted module skipped for missing Alembic; 24 frontend passed; build/lint passed. Initial implementation verification: **70 Python passed, one hosted module skipped; 25 frontend passed; lint and disposable TypeScript/production build passed**. Browser execution was initially blocked by missing Playwright; see the successful targeted closure below. Synthetic calendar F1 remains74.42%; merchant F1 remains73.97%, exact recoveries5/11, mixed merchants0. Fixtures/labels/alias map/bundled benchmark artifact are unchanged. See the [implementation log](implementation-log.md#assigned-tasks--15-november-2026) for commands, actual red/green outputs and warnings. These full-suite results do not establish fresh hosted acceptance or replace historical results.
+
+### Targeted closure — 15 November 2026
+
+The initial Playwright blocker above was resolved under explicit authorization: Playwright1.65.0 and Chromium were installed only in temporary external tooling storage. Private-statement and calendar-export browser scripts passed against loopback FastAPI with disposable synthetic SQLite. Added coverage verifies invalid input, nested drag feedback, keyboard picker, replacement/removal, cancellation and stale responses. Final focused Python selection: `18 passed in 1.57s`, including an additional trusted-alias/private-consent invariant. No production code changed during closure, so the prior complete Python70/frontend25/build/lint results were reused; the new focused test is not presented as a new full-suite run. Hosted Alembic limitation remains. The frozen artifact's historical source fingerprint is now pinned as well as separately checking the current fingerprint; deliberate mutation checks rejected all tested metric/count/hash/prediction/evidence/provenance changes.
+
 The 12 November 2026 rerun is recorded in the [current test report](../engineering-evaluation/test-report.md), including fresh build, lint, Python, frontend, Chromium and holdout results. The earlier entries on this page are historical baselines.

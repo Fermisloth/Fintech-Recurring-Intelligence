@@ -1,6 +1,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { IMPORT_PRESETS, applyImportPreset, parseImportCsv, projectMappedCsv } from '../src/components/importQuality.ts'
+import * as quality from '../src/components/importQuality.ts'
+
+test('picker and drop share single-file, empty-file and size validation', () => {
+  assert.equal(typeof quality.selectImportFile, 'function', 'shared file selection is missing')
+  const file = new File(['date,description,amount\n2025-01-01,Test,-1'], 'synthetic.csv', { type: 'text/csv' })
+  assert.equal(quality.selectImportFile([file]), file)
+  assert.throws(() => quality.selectImportFile([]), /one CSV/)
+  assert.throws(() => quality.selectImportFile([file, file]), /one CSV/)
+  assert.throws(() => quality.selectImportFile([new File([], 'empty.csv')]), /empty/)
+  assert.throws(() => quality.selectImportFile([new File(['x'.repeat(2_000_001)], 'large.csv')]), /2 MB/)
+})
 
 test('browser preview reads quoted commas, doubled quotes, multiline fields and BOM', () => {
   const parsed = parseImportCsv('\ufeffDay,Payee,Value,Account\r\n2025-01-05,"Shop, ""Prime""\r\nCard",-42,secret\r\n\r\n')

@@ -1,5 +1,7 @@
 # FinSight architecture
 
+15 November extension: `merchant_identity.py` supplies pure, review-only descriptor evidence to `merchant_review.py`. Detection keys, aliases, commitment hash construction and nullable merchant IDs are unchanged. Calendar fitting considers all anchor days in the initial posting month and adjacent months, retaining the three-day tolerance and existing support thresholds. StatementImport shares picker/drop ingestion; no new service or dependency was added.
+
 Current working tree assessed on 12 November 2026. See the [engineering architecture map](engineering/architecture.md) for source boundaries and [audit findings](engineering/audit-findings.md) for verified risks.
 
 ```text

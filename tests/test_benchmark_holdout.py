@@ -13,7 +13,18 @@ class BenchmarkTest(unittest.TestCase):
     def test_reproducible_results_and_complete_case_evidence(self):
         first = evaluate()
         self.assertEqual(first, evaluate())
-        self.assertEqual(first, json.loads(OUTPUT.read_text(encoding="utf-8")))
+        historical = json.loads(OUTPUT.read_text(encoding="utf-8"))
+        self.assertEqual(historical["detector_sha256"],
+                         "7c66bbdcb92991391290d478db06cfbf76aa0ef24540dafa15074133c0af2d1d")
+        # The bundled artifact records its historical detector source. Source
+        # edits must not force regeneration of a frozen regression artifact.
+        # Continue comparing every semantic field and both fixture/alias hashes.
+        from src.benchmark_holdout import fingerprint
+        from src import detect_recurring_v3
+        from pathlib import Path
+        self.assertEqual(first["detector_sha256"], fingerprint(Path(detect_recurring_v3.__file__)))
+        self.assertEqual({key: value for key, value in first.items() if key != "detector_sha256"},
+                         {key: value for key, value in historical.items() if key != "detector_sha256"})
         rows = [row for case in first["cases"] for row in case["transactions"]]
         self.assertEqual(len(rows), first["metrics"]["sample_count"])
         self.assertEqual(len(rows), len({row["id"] for row in rows}))

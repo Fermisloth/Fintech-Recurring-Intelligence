@@ -1,5 +1,7 @@
 # 7. Test, evaluate and debug
 
+15 November regressions: `tests/test_merchant_identity.py`, `tests/test_merchant_review_evidence.py` and `tests/test_calendar_boundaries.py` use independent development fixtures. The private browser harness covers nested drop feedback, invalid files, replacement/removal, keyboard picker, cancelled reads/analysis, stale responses and existing review/save flows. It and calendar export passed using documented Playwright1.65.0/Chromium installed only in a disposable external directory. Use a fresh `--basetemp` and disposable detector/build paths. The benchmark test pins the historical artifact's source fingerprint, validates the current source fingerprint separately, and compares every other field including fixture/alias hashes. Never regenerate the artifact merely to fix a source-hash mismatch. Hosted tests remain limited by unavailable Alembic.
+
 [Contents](README.md) · [Previous chapter](06-api-and-data.md) · [Next chapter](08-hosted-operations.md)
 
 ## 7.1 What counts as evidence

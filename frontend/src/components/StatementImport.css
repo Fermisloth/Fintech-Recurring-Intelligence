@@ -3,6 +3,11 @@
 .statement-import p { color: var(--muted); margin: 8px 0 14px; }
 .statement-file { display: grid; gap: 6px; margin-block: 18px; font-weight: 600; }
 .statement-file input { max-width: 100%; }
+.statement-dropzone { border: 1px dashed var(--rule); padding: 16px; border-radius: 4px; }
+.statement-dropzone.is-dragging { border-style: solid; border-color: var(--evergreen); background: var(--inset); }
+.statement-dropzone:focus-within { outline: 2px solid var(--evergreen); outline-offset: 3px; }
+.statement-dropzone .statement-file { margin-block: 12px; }
+.statement-selection { overflow-wrap: anywhere; }
 .statement-preview { overflow: auto; max-height: 280px; margin-block: 12px; border: 1px solid var(--rule); }
 .statement-preview table { border-collapse: collapse; width: 100%; }
 .statement-preview th, .statement-preview td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--rule); min-width: 100px; overflow-wrap: anywhere; }
